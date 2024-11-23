@@ -28,7 +28,7 @@ if not gemini_api_key:
 
 # Configure Gemini API
 genai.configure(api_key=gemini_api_key)
-model = genai.GenerativeModel('gemini-pro')
+model = genai.GenerativeModel('gemini-1.5-pro')
 
 # Let the user upload a file via `st.file_uploader`.
 uploaded_file = st.file_uploader(
