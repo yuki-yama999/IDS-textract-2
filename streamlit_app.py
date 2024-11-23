@@ -12,10 +12,10 @@ st.write(
     "Upload a document below and ask a question about it."
 )
 
-# Get API key from environment variable
-gemini_api_key = os.getenv("GEMINI_API_KEY")
+# Get API key from user input
+gemini_api_key = st.text_input("Gemini APIキーを入力してください", type="password")
 if not gemini_api_key:
-    st.error("Gemini API key not found in environment variables.", icon="🚨")
+    st.error("Gemini APIキーを入力してください", icon="🚨")
     st.stop()
 
 # Configure Gemini API
