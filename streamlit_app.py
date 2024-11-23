@@ -6,6 +6,14 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+# プロンプトテンプレートの定義
+PROMPT_TEMPLATES = {
+    "要約": "以下の文書を要約してください:\n{document}",
+    "重要なポイント抽出": "以下の文書から重要なポイントを箇条書きで抽出してください:\n{document}",
+    "財務分析": "以下の文書から財務に関する重要な情報を分析してください:\n{document}",
+    "カスタム質問": "以下の文書について質問に答えてください:\n{document}\n\n質問: {question}"
+}
+
 # Show title and description.
 st.title("📄 Financial Document Exstractor")
 st.write(
@@ -27,18 +35,31 @@ uploaded_file = st.file_uploader(
     "Upload a document (.txt or .md)", type=("txt", "md")
 )
 
-# Ask the user for a question via `st.text_area`.
-question = st.text_area(
-    "Now ask a question about the document!",
-    placeholder="Can you give me a short summary?",
-    disabled=not uploaded_file,
+# プロンプトテンプレートの選択
+template_name = st.selectbox(
+    "分析タイプを選択してください",
+    options=list(PROMPT_TEMPLATES.keys()),
+    disabled=not uploaded_file
 )
 
-if uploaded_file and question:
+# カスタム質問の入力欄（テンプレートが"カスタム質問"の場合のみ表示）
+question = ""
+if template_name == "カスタム質問":
+    question = st.text_area(
+        "文書について質問してください",
+        placeholder="質問を入力してください",
+        disabled=not uploaded_file,
+    )
 
+if uploaded_file and (template_name != "カスタム質問" or question):
     # Process the uploaded file and question.
     document = uploaded_file.read().decode()
-    prompt = f"Here's a document: {document} \n\n---\n\n {question}"
+    
+    # テンプレートに基づいてプロンプトを生成
+    prompt = PROMPT_TEMPLATES[template_name].format(
+        document=document,
+        question=question
+    )
 
     # Generate an answer using the Gemini API
     response = model.generate_content(prompt, stream=True)
