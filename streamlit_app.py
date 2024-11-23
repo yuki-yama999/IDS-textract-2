@@ -4,6 +4,8 @@ import os
 from dotenv import load_dotenv
 import PyPDF2
 import io
+import openai
+from anthropic import Anthropic
 
 # Load environment variables from .env file
 load_dotenv()
@@ -22,15 +24,33 @@ st.write(
     "Upload a document below and ask a question about it."
 )
 
-# Get API key from user input
-gemini_api_key = st.text_input("Gemini APIキーを入力してください", type="password")
-if not gemini_api_key:
-    st.error("Gemini APIキーを入力してください", icon="🚨")
-    st.stop()
+# モデル選択
+model_option = st.selectbox(
+    "使用するモデルを選択してください",
+    ["Gemini-1.5-pro", "gpt-4o", "Claude-3-sonnet"],
+    index=0
+)
 
-# Configure Gemini API
-genai.configure(api_key=gemini_api_key)
-model = genai.GenerativeModel('gemini-pro')
+# APIキー入力
+if model_option == "Gemini-1.5-pro":
+    api_key = st.text_input("Gemini APIキーを入力してください", type="password")
+    if not api_key:
+        st.error("Gemini APIキーを入力してください", icon="🚨")
+        st.stop()
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel('gemini-pro')
+elif model_option == "gpt-4o":
+    api_key = st.text_input("OpenAI APIキーを入力してください", type="password")
+    if not api_key:
+        st.error("OpenAI APIキーを入力してください", icon="🚨")
+        st.stop()
+    openai.api_key = api_key
+elif model_option == "Claude-3-sonnet":
+    api_key = st.text_input("Anthropic APIキーを入力してください", type="password")
+    if not api_key:
+        st.error("Anthropic APIキーを入力してください", icon="🚨")
+        st.stop()
+    anthropic = Anthropic(api_key=api_key)
 
 # Let the user upload a file via `st.file_uploader`.
 uploaded_file = st.file_uploader(
@@ -79,11 +99,26 @@ if submit_button and uploaded_file:
                 question=question
             )
 
-            # Generate an answer using the Gemini API
-            response = model.generate_content(prompt, stream=True)
-
-            # Stream the response to the app
-            for chunk in response:
-                st.write(chunk.text)
+            # Generate an answer based on selected model
+            if model_option == "Gemini-1.5-pro":
+                response = model.generate_content(prompt, stream=True)
+                for chunk in response:
+                    st.write(chunk.text)
+            elif model_option == "gpt-4o":
+                response = openai.ChatCompletion.create(
+                    model="gpt-4o",
+                    messages=[{"role": "user", "content": prompt}],
+                    stream=True
+                )
+                for chunk in response:
+                    if "content" in chunk.choices[0].delta:
+                        st.write(chunk.choices[0].delta.content)
+            else:  # Claude-3-sonnet
+                message = anthropic.messages.create(
+                    model="claude-3-sonnet",
+                    max_tokens=1000,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                st.write(message.content)
         except Exception as e:
             st.error(f"エラーが発生しました: {str(e)}")

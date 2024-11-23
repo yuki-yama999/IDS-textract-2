@@ -1,4 +1,6 @@
 streamlit
+openai
+anthropic
 google-generativeai
 python-dotenv
 PyPDF2
