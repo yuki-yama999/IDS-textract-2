@@ -2,6 +2,8 @@ import streamlit as st
 import google.generativeai as genai
 import os
 from dotenv import load_dotenv
+import PyPDF2
+import io
 
 # Load environment variables from .env file
 load_dotenv()
@@ -28,7 +30,7 @@ if not gemini_api_key:
 
 # Configure Gemini API
 genai.configure(api_key=gemini_api_key)
-model = genai.GenerativeModel('gemini-1.5-pro')
+model = genai.GenerativeModel('gemini-pro')
 
 # Let the user upload a file via `st.file_uploader`.
 uploaded_file = st.file_uploader(
@@ -59,20 +61,29 @@ if submit_button and uploaded_file:
     if template_name == "カスタム質問" and not question:
         st.error("質問を入力してください")
     else:
-        # Process the uploaded file and question.
-        document = uploaded_file.read()
-        if uploaded_file.type != "application/pdf":
-            document = document.decode()
-        
-        # テンプレートに基づいてプロンプトを生成
-        prompt = PROMPT_TEMPLATES[template_name].format(
-            document=document,
-            question=question
-        )
+        try:
+            # Process the uploaded file based on its type
+            if uploaded_file.type == "application/pdf":
+                # PDFファイルの場合
+                pdf_reader = PyPDF2.PdfReader(io.BytesIO(uploaded_file.read()))
+                document = ""
+                for page in pdf_reader.pages:
+                    document += page.extract_text() + "\n"
+            else:
+                # テキストファイルの場合
+                document = uploaded_file.read().decode()
+            
+            # テンプレートに基づいてプロンプトを生成
+            prompt = PROMPT_TEMPLATES[template_name].format(
+                document=document,
+                question=question
+            )
 
-        # Generate an answer using the Gemini API
-        response = model.generate_content(prompt, stream=True)
+            # Generate an answer using the Gemini API
+            response = model.generate_content(prompt, stream=True)
 
-        # Stream the response to the app
-        for chunk in response:
-            st.write(chunk.text)
+            # Stream the response to the app
+            for chunk in response:
+                st.write(chunk.text)
+        except Exception as e:
+            st.error(f"エラーが発生しました: {str(e)}")
