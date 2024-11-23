@@ -32,7 +32,7 @@ model = genai.GenerativeModel('gemini-pro')
 
 # Let the user upload a file via `st.file_uploader`.
 uploaded_file = st.file_uploader(
-    "Upload a document (.txt or .md)", type=("txt", "md")
+    "Upload a document (.txt, .md, or .pdf)", type=("txt", "md", "pdf")
 )
 
 # プロンプトテンプレートの選択
@@ -51,19 +51,28 @@ if template_name == "カスタム質問":
         disabled=not uploaded_file,
     )
 
-if uploaded_file and (template_name != "カスタム質問" or question):
-    # Process the uploaded file and question.
-    document = uploaded_file.read().decode()
-    
-    # テンプレートに基づいてプロンプトを生成
-    prompt = PROMPT_TEMPLATES[template_name].format(
-        document=document,
-        question=question
-    )
+# 送信ボタンの追加（ファイルがアップロードされている場合のみ有効化）
+submit_button = st.button("分析開始", disabled=not uploaded_file)
 
-    # Generate an answer using the Gemini API
-    response = model.generate_content(prompt, stream=True)
+if submit_button and uploaded_file:
+    # カスタム質問の場合は質問が入力されているかチェック
+    if template_name == "カスタム質問" and not question:
+        st.error("質問を入力してください")
+    else:
+        # Process the uploaded file and question.
+        document = uploaded_file.read()
+        if uploaded_file.type != "application/pdf":
+            document = document.decode()
+        
+        # テンプレートに基づいてプロンプトを生成
+        prompt = PROMPT_TEMPLATES[template_name].format(
+            document=document,
+            question=question
+        )
 
-    # Stream the response to the app
-    for chunk in response:
-        st.write(chunk.text)
+        # Generate an answer using the Gemini API
+        response = model.generate_content(prompt, stream=True)
+
+        # Stream the response to the app
+        for chunk in response:
+            st.write(chunk.text)
