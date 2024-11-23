@@ -4,3 +4,5 @@ anthropic
 google-generativeai
 python-dotenv
 PyPDF2
+google-ai-generativelanguage
+google-api-core

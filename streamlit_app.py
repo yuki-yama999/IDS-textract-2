@@ -6,6 +6,8 @@ import PyPDF2
 import io
 import openai
 from anthropic import Anthropic
+from google.ai import generativelanguage as glm
+from google.api_core import client_options
 
 # Load environment variables from .env file
 load_dotenv()
